@@ -4,7 +4,7 @@ development:
   adapter: postgresql
   database: fpt_development
   username: postgres
-  password: secret
+  password:
   host: localhost
   encoding: UTF8
 
@@ -15,7 +15,7 @@ test:
   adapter: postgresql
   database: fpt_test
   username: postgres
-  password: secret
+  password: 
   host: localhost
   encoding: UTF8
 
