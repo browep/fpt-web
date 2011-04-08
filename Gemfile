@@ -38,3 +38,5 @@ gem "autotest-rails"
 gem 'shoulda'
 gem 'pg'
 gem 'json'
+gem 'sqlite3-ruby'
+gem 'heroku'
