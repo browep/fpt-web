@@ -3,6 +3,7 @@ FptWeb::Application.routes.draw do
   resources :reports do
     collection do
       post 'upload'
+      get 'do_graphs'
     end
   end
 
@@ -15,7 +16,7 @@ FptWeb::Application.routes.draw do
 
   # Sample of named route:
   #   match 'products/:id/purchase' => 'catalog#purchase', :as => :purchase
-  # This route can be invoked with purchase_url(:id => product.id)
+  # This route can be invoked with purchase_url(:id => product.id)http://chart.apis.google.com/chart?chd=s:88898,fz9Ly&chs=320x200&chdl=Trend+1&chco=0000ff&chtt=push+ups&cht=lxy
 
   # Sample resource route (maps HTTP verbs to controller actions automatically):
   #   resources :products

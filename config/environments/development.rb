@@ -22,5 +22,11 @@ FptWeb::Application.configure do
 
   # Only use best-standards-support built into browsers
   config.action_dispatch.best_standards_support = :builtin
+
+
+  #reload lib files
+#  require_dependency File.join(Rails.root, "lib/table.rb")
+  config.autoload_paths += %W( #{Rails.root}/lib/fpt.rb)
+
 end
 

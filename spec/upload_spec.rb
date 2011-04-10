@@ -3,10 +3,9 @@ require "tests"
 
 describe  "Uploads" do
 
-  it "load_models" do
-    Tester.new().load_models
-
-
+  it "load db file" do
+    Tester.new().load_db
   end
+
 
 end
