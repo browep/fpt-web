@@ -41,3 +41,6 @@ gem 'json'
 gem 'sqlite3-ruby'
 gem 'heroku'
 gem "aws-ses", "~> 0.4.1", :require => 'aws/ses'
+gem "httparty"
+gem "logglier"
+gem "imgur"

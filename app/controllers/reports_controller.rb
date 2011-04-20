@@ -1,25 +1,29 @@
 require 'fpt'
 
 class ReportsController < ApplicationController
-  def upload
-    
+  skip_before_filter :verify_authenticity_token
+
+  def image
+    Rails.logger.debug("params #{params.to_yaml}")
+    response = IMGUR_API.upload_file(params[:myFile].tempfile.path)
+    render :text => response['original_image']
   end
 
+
   def do_graphs
+
+    
     db = SQLite3::Database.new( File.join(Rails.root, "spec/data/main_db_1.sqlite"))
-    fpt_db = Fpt::Db.new(:db=>db)
     json_file_path = File.join(Rails.root, "spec/data/models.json")
     json_str = open(json_file_path).readlines.to_s
-    fpt_model = Fpt::Model.new(json_str)
 
-    fpt_graph = Fpt::Graph.new(fpt_model,fpt_db)
-    fpt_table = Fpt::Table.new(fpt_model,fpt_db)
+    report_data = report(db, json_str)
 
-    @graph_urls = {}
-    fpt_db.definitions.each do |definition|
-      @graph_urls[definition.data['workout_name']]  = {:graph_url=>fpt_graph.graph_workout(definition),
-                                                       :table_array=>fpt_table.to_a(definition)}
-    end
+    @report_data = report_data
+
+    render 'reports_mailer/report'
+
+    LOGGLIER.info("doing do_graphs")
 
 
   end

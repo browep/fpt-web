@@ -44,6 +44,8 @@ GEM
       xml-simple
     builder (2.1.2)
     configuration (1.2.0)
+    crack (0.1.8)
+    curb (0.7.15)
     diff-lcs (1.1.2)
     erubis (2.6.6)
       abstract (>= 1.0.0)
@@ -51,11 +53,17 @@ GEM
       json (~> 1.4.6)
       launchy (~> 0.3.2)
       rest-client (>= 1.4.0, < 1.7.0)
+    httparty (0.7.4)
+      crack (= 0.1.8)
     i18n (0.5.0)
+    imgur (0.2.0)
+      crack (>= 0.1.4)
+      curb (>= 0.5.4.0)
     json (1.4.6)
     launchy (0.3.7)
       configuration (>= 0.0.5)
       rake (>= 0.8.1)
+    logglier (0.0.5)
     mail (2.2.15)
       activesupport (>= 2.3.6)
       i18n (>= 0.4.0)
@@ -117,7 +125,10 @@ DEPENDENCIES
   autotest-rails
   aws-ses (~> 0.4.1)
   heroku
+  httparty
+  imgur
   json
+  logglier
   nifty-generators
   pg
   rails (= 3.0.3)

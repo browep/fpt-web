@@ -2,7 +2,7 @@ FptWeb::Application.routes.draw do
 
   resources :reports do
     collection do
-      post 'upload'
+      post 'image'
       get 'do_graphs'
     end
   end

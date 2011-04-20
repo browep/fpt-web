@@ -1,0 +1,29 @@
+<table align="center">
+<% @report_data[:images].in_groups_of(3,false) do |pic_arr_group| %>
+<tr>
+    <% pic_arr_group.each do |pic_arr| %>
+        <td align="center">
+          <%= days_ago(pic_arr[0])%><br/>
+          <%= image_tag pic_arr[1],:style=>"width:160px;" %>
+        </td>
+    <% end %>
+    </tr>
+<% end %>
+  </table>
+
+
+
+<% @report_data[:data].each_pair do |name,data| %>
+    <p style="text-align: center;font-size:1.2em;font-weight:bold;">
+      <%= name %><br/>
+    <%= image_tag data[:graph_url],:style=>'align: center;' %>
+      <table align="center" border="1">
+        <tr><th>Time</th><th><%= data[:y_label]%></th></tr>
+        <% data[:table_array].each do |entry| %>
+            <tr><td><%= pretty_date entry[0] %></td><td><%= entry[1] %></td></tr>
+        <% end %>
+      </table></p>
+    <br/>
+    <br/>
+
+<% end %>

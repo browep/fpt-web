@@ -1,12 +1,70 @@
 require 'sqlite3'
 require 'json'
 require 'date'
+require 'httparty'
+
+
+def get_y_label(model, workout_definition)
+  y_label = model['y_label']
+
+  if !workout_definition.data['label'].nil?
+    y_label += " (#{workout_definition.data['label']})"
+  end
+  y_label
+end
+
+def report(sqlite_db_obj, model_json_str,shorten_urls=false)
+  fpt_db = Fpt::Db.new(:db=>sqlite_db_obj)
+
+  fpt_model = Fpt::Model.new(model_json_str)
+
+  fpt_graph = Fpt::Graph.new(fpt_model, fpt_db)
+  fpt_table = Fpt::Table.new(fpt_model, fpt_db)
+
+  report_data = {:data=>{}}
+  fpt_db.definitions.each do |definition|
+    model_id = definition.data['workout_type']
+    model = fpt_model.by_id(model_id)
+    y_label = get_y_label(model, definition)
+    
+    graph_url = fpt_graph.graph_workout(definition)
+    graph_url = shorten(graph_url) if shorten_urls
+
+    report_data[:data][definition.data['workout_name']] = {:graph_url=>graph_url,
+                                                    :table_array=>fpt_table.to_a(definition),
+                                                    :y_label=>y_label
+
+    }
+  end
+
+  report_data[:images] = fpt_db.images
+
+  report_data
+
+end
+
+def shorten url
+  begin
+    url =  CGI.escape url
+    bitly_api_call = "http://api.bitly.com/v3/shorten?login=#{ENV['bitly_username']}&apiKey=#{ENV['bitly_api_key']}&longUrl=#{url}&format=json"
+    Rails.logger.info("bitly call #{bitly_api_call}")
+    return HTTParty.get(bitly_api_call)['data']['url']
+  rescue => e
+    Rails.logger.error "error with shortening #{url}"
+    Rails.logger.error e
+    return url
+  end
+
+end
+
+
+
 
 module Fpt
 
   class Db
 
-    attr_reader :definition_ids, :definitions
+    attr_reader :definition_ids, :definitions,:images
     #noinspection RubyArgCount
     def initialize(params)
       if params[:file_path]
@@ -23,6 +81,15 @@ module Fpt
         fpt_definition = Definition.new(definition)
         @definitions << fpt_definition
       end
+
+      @images =      [
+          [DateTime.now - 40.days,"http://imgur.com/gpQhv.jpg"],
+          [DateTime.now - 20.days,"http://imgur.com/gpQhv.jpg"],
+          [DateTime.now - 10.days,"http://imgur.com/gpQhv.jpg"],
+          [DateTime.now - 9.days,"http://imgur.com/gpQhv.jpg"],
+          [DateTime.now - 1.days,"http://imgur.com/gpQhv.jpg"],
+          [DateTime.now,"http://imgur.com/gpQhv.jpg"]
+      ]
 
 
       @db.execute("select ROWID,* from instances") do |instance|
@@ -55,6 +122,7 @@ module Fpt
       nil
 
     end
+
   end
 
   class Storable
@@ -98,6 +166,7 @@ module Fpt
       @db = fpt_db
     end
 
+
     def graph_workout(workout_definition)
 
       model_id = workout_definition.data['workout_type']
@@ -105,6 +174,10 @@ module Fpt
       entries = @db.workout_entries(workout_definition.id)
 
       model = @model.by_id(model_id)
+
+      y_label = get_y_label(model, workout_definition)
+
+
 
       x_value_name = model['x_value_name']
       x_data_set = []
@@ -132,13 +205,6 @@ module Fpt
         arr1[0] <=> arr2[0]
       end
 
-#    gchart = GoogleChart::LineChart.new('320x200', workout_definition.data['workout_name'], true) do |lcxy|
-#      lcxy.data nil, data_set, '0000ff'
-#    end
-#    gchart_line_url =Gchart.line_xy(:size => '200x300',
-#            :title => ,
-#            :bg => 'efefef',
-#            :data => [x_data_set,y_data_set])
       x_data_set = []
       y_data_set = []
 
@@ -170,7 +236,7 @@ module Fpt
         y_data_set << arr[1]
       end
 
-      "http://chart.apis.google.com/chart?chs=600x325&chd=t:#{x_data_set.join(",")}|#{y_data_set.join(",")}&cht=lxy&chxt=x,y&chxr=1,#{min_y_value},#{max_y_value}&chxl=0:|#{x_labels.join("|")}"
+      "http://chart.apis.google.com/chart?chs=600x325&chf=bg,s,EFEFEF&chco=3072F3&chd=t:#{x_data_set.join(",")}|#{y_data_set.join(",")}&cht=lxy&chxt=x,y,y&chxr=1,#{min_y_value},#{max_y_value}&chxl=0:|#{x_labels.join("|")}|2:||#{y_label}||"
     end
   end
 
