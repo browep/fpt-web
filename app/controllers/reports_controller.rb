@@ -4,9 +4,10 @@ class ReportsController < ApplicationController
   skip_before_filter :verify_authenticity_token
 
   def image
-    Rails.logger.debug("params #{params.to_yaml}")
     response = IMGUR_API.upload_file(params[:myFile].tempfile.path)
     render :text => response['original_image']
+    LOGGLIER.info("IMGUR UPLOAD: #{response['original_image']}" )
+
   end
 
 
