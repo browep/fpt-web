@@ -3,6 +3,10 @@ require 'json'
 require 'date'
 require 'httparty'
 
+MILLIS_IN_HOUR = 1000 * 60 * 60
+MILLIS_IN_MINUTE = 1000 * 60
+MILLIS_IN_SECOND = 1000
+
 
 def get_y_label(model, workout_definition)
   y_label = model['y_label']
@@ -185,8 +189,6 @@ module Fpt
       y_label = get_y_label(model, workout_definition)
 
       x_value_name = model['x_value_name']
-      x_data_set = []
-      y_data_set = []
       data_set = []
       min_x_value = nil
       max_x_value = nil
@@ -220,7 +222,7 @@ module Fpt
       relative_x_range = max_x_value-min_x_value
 
       num_x_labels = 6 # number of labels on the x-axis
-
+      num_y_labels = 12
       label_inc = relative_x_range / num_x_labels # increment for each label
 
       x_labels = []
@@ -228,6 +230,29 @@ module Fpt
       (0..num_x_labels).to_a.each do |i|
         rel_date = min_x_value + (label_inc * i)
         x_labels << Time.at(rel_date).strftime("%D")
+      end
+
+      y_labels = nil
+
+      if x_value_name == "time"
+        #need special display for this
+        y_labels = []
+        label_inc = relative_y_range / num_y_labels # increment for each label
+        (0..num_y_labels).to_a.each do |i|
+          rel_time = min_y_value + (label_inc * i)
+          hours = "%02d" % (rel_time / MILLIS_IN_HOUR).to_i
+          rel_time = rel_time % MILLIS_IN_HOUR
+          minutes = "%02d" % (rel_time / MILLIS_IN_MINUTE).to_i
+          rel_time = rel_time % MILLIS_IN_MINUTE
+          seconds = "%02d" % (rel_time / MILLIS_IN_SECOND).to_i
+          if hours != "00"
+            y_labels << "#{hours}:#{minutes}:#{seconds}"
+          else
+            y_labels << "#{minutes}:#{seconds}"
+          end
+        end
+
+
       end
 
       data_set.each do |arr|
@@ -249,6 +274,9 @@ module Fpt
       end
 
       graph_url = "http://chart.apis.google.com/chart?chs=600x325&chf=bg,s,EFEFEF&chco=3072F3&chd=t:#{x_data_set.join(",")}|#{y_data_set.join(",")}&cht=lxy&chxt=x,y,y&chxr=1,#{min_y_value},#{max_y_value}&chxl=0:|#{x_labels.join("|")}|2:||#{y_label}||"
+      if !y_labels.nil?
+        graph_url += "1:|#{y_labels.join("|")}|"
+      end
       Rails.logger.info("graphed:" + graph_url)
       graph_url
     end
