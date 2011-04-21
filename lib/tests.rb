@@ -9,7 +9,7 @@ require "date"
 class Tester
 
   def load_db
-    db = SQLite3::Database.new( File.join(Rails.root, "spec/data/main_db_1.sqlite"))
+    db = SQLite3::Database.new( File.join(Rails.root, "spec/data/uploaded_1.db"))
     fpt_db = Fpt::Db.new(:db=>db)
     fpt_db.definitions.size.should == 4
     fpt_db.definition_ids.size.should == 4
@@ -28,6 +28,13 @@ class Tester
 
       false.should == fpt_db.definition_by_name(definition.data['workout_name']).nil?
 
+    end
+
+    fpt_db.images.size.should == 50
+
+    fpt_db.images.each do |image_arr|
+      true.should == (image_arr[0].instance_of? DateTime)
+      true.should == (image_arr[1].instance_of? String)
     end
 
 

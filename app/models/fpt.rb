@@ -33,7 +33,6 @@ def report(sqlite_db_obj, model_json_str,shorten_urls=false)
     report_data[:data][definition.data['workout_name']] = {:graph_url=>graph_url,
                                                     :table_array=>fpt_table.to_a(definition),
                                                     :y_label=>y_label
-
     }
   end
 
@@ -82,21 +81,28 @@ module Fpt
         @definitions << fpt_definition
       end
 
-      @images =      [
-          [DateTime.now - 40.days,"http://imgur.com/gpQhv.jpg"],
-          [DateTime.now - 20.days,"http://imgur.com/gpQhv.jpg"],
-          [DateTime.now - 10.days,"http://imgur.com/gpQhv.jpg"],
-          [DateTime.now - 9.days,"http://imgur.com/gpQhv.jpg"],
-          [DateTime.now - 1.days,"http://imgur.com/gpQhv.jpg"],
-          [DateTime.now,"http://imgur.com/gpQhv.jpg"]
-      ]
+      @images = []
+      @db.execute("select ROWID,* from instances where type = 6") do |image_row|
+        picture = Storable.new(image_row)
+        file_name = picture.data["file_name"]
+        date_time = DateTime.parse(Time.at(file_name.sub(".jpg", "")[0, 10].to_i).to_s)
+        url = picture.data["url"]
+        if !url.nil?
+          @images << [date_time, url]
+        end
+      end
+
+      # sort images first->last
+      @images.sort! do |a,b|
+        a[0] <=> b[0]
+      end
 
 
       @db.execute("select ROWID,* from instances") do |instance|
-        Rails.logger.debug("INSTANCE: #{instance.join(", ")}")
+#        Rails.logger.debug("INSTANCE: #{instance.join(", ")}")
       end
       @db.execute("select ROWID,* from indexes") do |instance|
-        Rails.logger.debug("INDEX:\t #{instance.join(", ")}")
+#        Rails.logger.debug("INDEX:\t #{instance.join(", ")}")
       end
 
 
@@ -159,6 +165,7 @@ module Fpt
 
   end
 
+
   class Graph
 
     def initialize(fpt_model, fpt_db)
@@ -177,8 +184,6 @@ module Fpt
 
       y_label = get_y_label(model, workout_definition)
 
-
-
       x_value_name = model['x_value_name']
       x_data_set = []
       y_data_set = []
@@ -189,14 +194,11 @@ module Fpt
       max_y_value = nil
       entries.each do |entry|
         x_val = entry.created.to_i
-        x_data_set << x_val
         y_val = entry.data[x_value_name]
-        y_data_set << y_val
         min_x_value = x_val if min_x_value.nil? || x_val < min_x_value
         max_x_value = x_val if max_x_value.nil? || x_val > max_x_value
         min_y_value = y_val if min_y_value.nil? || y_val < min_y_value
         max_y_value = y_val if max_y_value.nil? || y_val > max_y_value
-
 
         data_set << [entry.created.to_i, entry.data[x_value_name]]
       end
@@ -208,21 +210,29 @@ module Fpt
       x_data_set = []
       y_data_set = []
 
+
+      # modify the minimum and maximum y-val so that it looks decent on the graph
+      min_y_value = min_y_value * 0.8
+      max_y_value = max_y_value * 1.2
+
+      relative_y_range = max_y_value-min_y_value
+
       relative_x_range = max_x_value-min_x_value
 
-      num_labels = 6 # number of labels on the x-axis
+      num_x_labels = 6 # number of labels on the x-axis
 
-      label_inc = relative_x_range / num_labels # increment for each label
+      label_inc = relative_x_range / num_x_labels # increment for each label
 
       x_labels = []
 
-      (0..num_labels).to_a.each do |i|
+      (0..num_x_labels).to_a.each do |i|
         rel_date = min_x_value + (label_inc * i)
         x_labels << Time.at(rel_date).strftime("%D")
       end
 
       data_set.each do |arr|
         x_val = arr[0]
+        y_val = arr[1]
         # x_val for gcharts is actually a percentage representation of where on the chart it will appear
         # 0  is all the way to the left, 100, is all the way to the right
         # this percentage should come from (max - min)/(y_actual - min)
@@ -233,16 +243,21 @@ module Fpt
         else
           x_data_set << (x_val.to_f - min_x_value)/(relative_x_range)*100
         end
-        y_data_set << arr[1]
+
+        y_data_set << (y_val.to_f - min_y_value)/(relative_y_range)*100
+
       end
 
-      "http://chart.apis.google.com/chart?chs=600x325&chf=bg,s,EFEFEF&chco=3072F3&chd=t:#{x_data_set.join(",")}|#{y_data_set.join(",")}&cht=lxy&chxt=x,y,y&chxr=1,#{min_y_value},#{max_y_value}&chxl=0:|#{x_labels.join("|")}|2:||#{y_label}||"
+      graph_url = "http://chart.apis.google.com/chart?chs=600x325&chf=bg,s,EFEFEF&chco=3072F3&chd=t:#{x_data_set.join(",")}|#{y_data_set.join(",")}&cht=lxy&chxt=x,y,y&chxr=1,#{min_y_value},#{max_y_value}&chxl=0:|#{x_labels.join("|")}|2:||#{y_label}||"
+      Rails.logger.info("graphed:" + graph_url)
+      graph_url
     end
   end
 
   class Model
     def initialize(json)
-      @models_by_name = JSON.parse(json)
+      parsed_obj = JSON.parse(json)
+      @models_by_name = parsed_obj['models']
       @models_by_id = {}
       @models_by_name.each_pair do |model_name, model_data|
         @models_by_id[model_data['id']] = model_name
@@ -279,6 +294,10 @@ module Fpt
 
       entries.each do |entry|
         rows << [entry.created, entry.data[x_value_name]]
+      end
+
+      rows.sort! do |a,b|
+        a[0] <=> b[0]
       end
 
       rows
