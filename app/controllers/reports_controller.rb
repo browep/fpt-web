@@ -5,7 +5,7 @@ class ReportsController < ApplicationController
 
   def image
     response = IMGUR_API.upload_file(params[:myFile].tempfile.path)
-    render :text => response['original_image']
+    render :json => response
     LOGGLIER.info("IMGUR UPLOAD: #{response['original_image']}" )
 
   end
