@@ -7,6 +7,24 @@ MILLIS_IN_HOUR = 1000 * 60 * 60
 MILLIS_IN_MINUTE = 1000 * 60
 MILLIS_IN_SECOND = 1000
 
+def split_to_h_m_s(millis)
+  hours = (millis / MILLIS_IN_HOUR).to_i
+  millis = millis % MILLIS_IN_HOUR
+  minutes = (millis / MILLIS_IN_MINUTE).to_i
+  millis = millis % MILLIS_IN_MINUTE
+  seconds = (millis / MILLIS_IN_SECOND).to_i
+  return hours, minutes, seconds
+end
+
+
+def time_tuple_to_display(hours, minutes, seconds)
+  if hours > 0
+    y_label = "%02d" % hours + ":" + "%02d" % minutes +":"+ "%02d" %seconds
+  else
+    y_label = "%02d" % minutes + ":" "%02d" %seconds
+  end
+  y_label
+end
 
 def get_y_label(model, workout_definition)
   y_label = model['y_label']
@@ -214,15 +232,16 @@ module Fpt
 
 
       # modify the minimum and maximum y-val so that it looks decent on the graph
-      min_y_value = min_y_value * 0.8
-      max_y_value = max_y_value * 1.2
-
+      actual_y_diff = max_y_value-min_y_value
+      min_y_value = max_y_value - actual_y_diff < 0 ? 0 : min_y_value - (actual_y_diff * 0.2)
+      max_y_value = max_y_value + (actual_y_diff * 0.2)
+      
       relative_y_range = max_y_value-min_y_value
 
       relative_x_range = max_x_value-min_x_value
 
       num_x_labels = 6 # number of labels on the x-axis
-      num_y_labels = 12
+      num_y_labels = 12 # number of labels on the y-axis
       label_inc = relative_x_range / num_x_labels # increment for each label
 
       x_labels = []
@@ -240,16 +259,9 @@ module Fpt
         label_inc = relative_y_range / num_y_labels # increment for each label
         (0..num_y_labels).to_a.each do |i|
           rel_time = min_y_value + (label_inc * i)
-          hours = "%02d" % (rel_time / MILLIS_IN_HOUR).to_i
-          rel_time = rel_time % MILLIS_IN_HOUR
-          minutes = "%02d" % (rel_time / MILLIS_IN_MINUTE).to_i
-          rel_time = rel_time % MILLIS_IN_MINUTE
-          seconds = "%02d" % (rel_time / MILLIS_IN_SECOND).to_i
-          if hours != "00"
-            y_labels << "#{hours}:#{minutes}:#{seconds}"
-          else
-            y_labels << "#{minutes}:#{seconds}"
-          end
+          hours, minutes, seconds = split_to_h_m_s(rel_time)
+          label = time_tuple_to_display(hours, minutes, seconds)
+          y_labels << label
         end
 
 
@@ -275,7 +287,7 @@ module Fpt
 
       graph_url = "http://chart.apis.google.com/chart?chs=600x325&chf=bg,s,EFEFEF&chco=3072F3&chd=t:#{x_data_set.join(",")}|#{y_data_set.join(",")}&cht=lxy&chxt=x,y,y&chxr=1,#{min_y_value},#{max_y_value}&chxl=0:|#{x_labels.join("|")}|2:||#{y_label}||"
       if !y_labels.nil?
-        graph_url += "1:|#{y_labels.join("|")}|"
+        graph_url += "1:|#{y_labels.join("|")}"
       end
       Rails.logger.info("graphed:" + graph_url)
       graph_url
@@ -321,7 +333,9 @@ module Fpt
       rows = []
 
       entries.each do |entry|
-        rows << [entry.created, entry.data[x_value_name]]
+        x_value = entry.data[x_value_name]
+        x_value = time_tuple_to_display(*split_to_h_m_s(x_value)) if x_value_name == "time"
+        rows << [entry.created, x_value]
       end
 
       rows.sort! do |a,b|
