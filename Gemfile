@@ -44,3 +44,7 @@ gem "aws-ses", "~> 0.4.1", :require => 'aws/ses'
 gem "httparty"
 gem "logglier"
 gem "imgur"
+gem "sinatra"
+gem "dm-core"
+gem "dm-sqlite-adapter"
+gem "dm-migrations"
