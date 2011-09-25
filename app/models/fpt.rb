@@ -45,17 +45,21 @@ def report(sqlite_db_obj, model_json_str,shorten_urls=false)
 
   report_data = {:data=>{}}
   fpt_db.definitions.each do |definition|
-    model_id = definition.data['workout_type']
-    model = fpt_model.by_id(model_id)
-    y_label = get_y_label(model, definition)
-    
-    graph_url = fpt_graph.graph_workout(definition)
-    graph_url = shorten(graph_url) if shorten_urls
+    begin
+      model_id = definition.data['workout_type']
+      model = fpt_model.by_id(model_id)
+      y_label = get_y_label(model, definition)
 
-    report_data[:data][definition.data['workout_name']] = {:graph_url=>graph_url,
-                                                    :table_array=>fpt_table.to_a(definition),
-                                                    :y_label=>y_label
-    }
+      graph_url = fpt_graph.graph_workout(definition)
+      graph_url = shorten(graph_url) if shorten_urls
+
+      report_data[:data][definition.data['workout_name']] = {:graph_url=>graph_url,
+                                                             :table_array=>fpt_table.to_a(definition),
+                                                             :y_label=>y_label
+      }
+    rescue => e
+      Rails.logger.error e
+    end
   end
 
   report_data[:images] = fpt_db.images
@@ -202,6 +206,10 @@ module Fpt
 
       entries = @db.workout_entries(workout_definition.id)
 
+      #if entries.size < 2
+      #  return
+      #end
+
       model = @model.by_id(model_id)
 
       y_label = get_y_label(model, workout_definition)
@@ -232,7 +240,7 @@ module Fpt
 
 
       # modify the minimum and maximum y-val so that it looks decent on the graph
-      actual_y_diff = max_y_value-min_y_value
+      actual_y_diff = max_y_value - min_y_value
       min_y_value = max_y_value - actual_y_diff < 0 ? 0 : min_y_value - (actual_y_diff * 0.2)
       max_y_value = max_y_value + (actual_y_diff * 0.2)
       
