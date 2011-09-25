@@ -4,3 +4,5 @@ log/*.log
 tmp/**/*
 keys
 .gitignore
+.idea
+db/development.sqlite3
